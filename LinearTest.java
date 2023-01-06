@@ -16,9 +16,9 @@ public class LinearTest extends LinearOpMode {
         FRight = hardwareMap.get(DcMotor.class, "FrontRight");
         BLeft = hardwareMap.get(DcMotor.class, "BackLeft");
         BRight = hardwareMap.get(DcMotor.class, "BackRight");
-        LowerArm = hardwareMap.get(DcMotor.class, "Arm");
+        LowerArm = hardwareMap.get(DcMotor.class, "LowerArm");
         Turret = hardwareMap.get(DcMotor.class, "Turret");
-        UpperArm = hardwareMap.get(DcMotor.class, "Patrick");
+        UpperArm = hardwareMap.get(DcMotor.class, "UpperArm");
         Claw = hardwareMap.get(Servo.class, "Claw");
         double max;
         waitForStart();
@@ -42,12 +42,11 @@ public class LinearTest extends LinearOpMode {
             FRight.setPower(pFRight);
             BLeft.setPower(pBLeft);
             BRight.setPower(pBRight);
-            Claw.setPosition(a() ? 1 : 0.2);
 
             //gamepad2
             LowerArm.setPower(gamepad2.left_stick_y);
             UpperArm.setPower(gamepad2.right_stick_y);
-            Turret.setPower(gamepad2.left_trigger ? 0.5 : gamepad2.right_trigger ? -0.5 : 0);
+            Turret.setPower((gamepad2.left_trigger > 0) ? 0.5 : (gamepad2.right_trigger > 0) ? -0.5 : 0);
             Claw.setPosition((gamepad2.right_bumper || gamepad2.left_bumper) ? 1 : 0.2);
 
         }
