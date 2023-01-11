@@ -4,11 +4,13 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.TouchSensor;
 
-@TeleOp(name = "LinearTest", group = "whatever")
-public class LinearTest extends LinearOpMode {
+@TeleOp(name = "outputmode", group = "whatever")
+public class outputmode extends LinearOpMode {
     DcMotor FLeft, FRight, BLeft, BRight, UpperArm, Turret, LowerArm;
-    Servo Claw;
+    Servo Claw, Wrist;
+    TouchSensor ButtonOne, ButtonTwo;
 
     @Override
     public void runOpMode() {
@@ -20,18 +22,23 @@ public class LinearTest extends LinearOpMode {
         Turret = hardwareMap.get(DcMotor.class, "Turret");
         UpperArm = hardwareMap.get(DcMotor.class, "UpperArm");
         Claw = hardwareMap.get(Servo.class, "Claw");
+        Wrist = hardwareMap.get(Servo.class, "Wrist");
+        ButtonOne = hardwareMap.touchSensor.get("ButtonOne");
+        ButtonTwo = hardwareMap.touchSensor.get("ButtonTwo");
+
         double max;
+        final int UpperPos = UpperArm.getCurrentPosition();
+        final int LowerPos = LowerArm.getCurrentPosition();
         waitForStart();
-        while (opModeIsActive() && !x()) {
-            //gamepad1
-            double pa = leftStickX();
-            double px = Math.round(-leftStickY()/2);
-            double py = -rightStickX();
+        while (opModeIsActive() && (!(gamepad1.x || gamepad2.x))) {
+            double py = gamepad1.right_stick_x;
+            double px = Math.round(gamepad1.left_stick_x);
+            double pa = -gamepad1.left_stick_y;
 
             if (Math.abs(pa) < 0.05) pa = 0;
-            double pFLeft = -px + py - pa;
-            double pFRight = px + py -pa;
-            double pBLeft = -px + py + pa;
+            double pFLeft = px + py -pa;
+            double pFRight = -px + py + pa;
+            double pBLeft = -px + py - pa;
             double pBRight = px + py + pa;
             max = Math.max(1.0, Math.max(Math.abs(pFLeft), Math.max(Math.abs(pFRight), Math.max(Math.abs(pBLeft), Math.abs(pBRight)))));
             pFLeft /= max;
@@ -48,23 +55,34 @@ public class LinearTest extends LinearOpMode {
             UpperArm.setPower(gamepad2.right_stick_y);
             Turret.setPower((gamepad2.left_trigger > 0) ? 0.5 : (gamepad2.right_trigger > 0) ? -0.5 : 0);
             Claw.setPosition((gamepad2.right_bumper || gamepad2.left_bumper) ? 1 : 0.2);
-
+            //print stuff or something
+            if (gamepad1.a || gamepad2.a) {
+                telemetry.addData("Upper Arm", UpperArm.getCurrentPosition());
+                telemetry.addData("Lower Arm", LowerArm.getCurrentPosition());
+                telemetry.addData("Turret", Turret.getCurrentPosition());
+                telemetry.addData("ButtonOne", ButtonOne.isPressed());
+                telemetry.addData("ButtonTwo", ButtonTwo.isPressed());
+                telemetry.update();
+            }
+            if (gamepad2.y){
+                while (UpperArm.getCurrentPosition() != UpperPos) {
+                    if (UpperArm.getCurrentPosition() > UpperPos){
+                        UpperArm.setPower(-0.4);
+                    } else {
+                        UpperArm.setPower(0.4);
+                    }
+                }
+                UpperArm.setPower(0);
+                while (LowerArm.getCurrentPosition() != LowerPos) {
+                    if (LowerArm.getCurrentPosition() > LowerPos){
+                        LowerArm.setPower(-0.4);
+                    } else {
+                        LowerArm.setPower(0.4);
+                    }
+                }
+                LowerArm.setPower(0);
+                Wrist.setPosition(0);
+            }
         }
     }
-    public boolean RTrigger(){return(gamepad1.right_trigger != 0);}
-    public boolean LTrigger(){return(gamepad1.left_trigger != 0);}
-    public boolean a(){return gamepad1.a;}
-    public boolean b(){return gamepad1.b;}
-    public boolean x(){return gamepad1.x;}
-    public boolean y(){return gamepad1.y;}
-    public boolean dUp(){return gamepad1.dpad_up;}
-    public boolean dDown(){return gamepad1.dpad_down;}
-    public boolean dLeft(){return gamepad1.dpad_left;}
-    public boolean dRight(){return gamepad1.dpad_right;}
-    public boolean rBumper(){return gamepad1.right_bumper;}
-    public boolean lBumper(){return gamepad1.left_bumper;}
-    public double leftStickX(){return gamepad1.left_stick_x;}
-    public double leftStickY(){return gamepad1.left_stick_y;}
-    public double rightStickX(){return gamepad1.right_stick_x;}
-    public double rightStickY(){return gamepad1.right_stick_y;}
 }
