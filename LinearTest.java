@@ -29,11 +29,13 @@ public class outputmode extends LinearOpMode {
         double max;
         final int UpperPos = UpperArm.getCurrentPosition();
         final int LowerPos = LowerArm.getCurrentPosition();
+        final int TurretPos = Turret.getCurrentPosition();
+        final double WristPos = Wrist.getPosition();
         waitForStart();
         while (opModeIsActive() && (!(gamepad1.x || gamepad2.x))) {
-            double py = gamepad1.right_stick_x;
+            double py = -gamepad1.right_stick_x;
             double px = Math.round(gamepad1.left_stick_x);
-            double pa = -gamepad1.left_stick_y;
+            double pa = gamepad1.left_stick_y;
 
             if (Math.abs(pa) < 0.05) pa = 0;
             double pFLeft = px + py -pa;
@@ -49,12 +51,12 @@ public class outputmode extends LinearOpMode {
             FRight.setPower(pFRight);
             BLeft.setPower(pBLeft);
             BRight.setPower(pBRight);
-
-            //gamepad2
             LowerArm.setPower(gamepad2.left_stick_y);
             UpperArm.setPower(gamepad2.right_stick_y);
-            Turret.setPower((gamepad2.left_trigger > 0) ? 0.5 : (gamepad2.right_trigger > 0) ? -0.5 : 0);
-            Claw.setPosition((gamepad2.right_bumper || gamepad2.left_bumper) ? 1 : 0.2);
+            Turret.setPower((gamepad2.left_trigger > 0) ? gamepad2.left_trigger : (gamepad2.right_trigger > 0) ? -gamepad2.right_trigger : 0);
+            Claw.setPosition(gamepad2.right_bumper ? 1 : 0.2);
+            Wrist.setPosition((gamepad2.left_bumper) ? 0 : 1 );
+
             //print stuff or something
             if (gamepad1.a || gamepad2.a) {
                 telemetry.addData("Upper Arm", UpperArm.getCurrentPosition());
@@ -62,26 +64,19 @@ public class outputmode extends LinearOpMode {
                 telemetry.addData("Turret", Turret.getCurrentPosition());
                 telemetry.addData("ButtonOne", ButtonOne.isPressed());
                 telemetry.addData("ButtonTwo", ButtonTwo.isPressed());
+                telemetry.addData("Claw" , Claw.getPosition());
                 telemetry.update();
             }
-            if (gamepad2.y){
+            if (gamepad1.y || gamepad2.y){
                 while (UpperArm.getCurrentPosition() != UpperPos) {
-                    if (UpperArm.getCurrentPosition() > UpperPos){
-                        UpperArm.setPower(-0.4);
-                    } else {
-                        UpperArm.setPower(0.4);
-                    }
+                    UpperArm.setPower(UpperArm.getCurrentPosition() > UpperPos ? -0.4 : 0.4);
                 }
                 UpperArm.setPower(0);
                 while (LowerArm.getCurrentPosition() != LowerPos) {
-                    if (LowerArm.getCurrentPosition() > LowerPos){
-                        LowerArm.setPower(-0.4);
-                    } else {
-                        LowerArm.setPower(0.4);
-                    }
+                    LowerArm.setPower(LowerArm.getCurrentPosition() > LowerPos ? -0.4 : 0.4);
                 }
                 LowerArm.setPower(0);
-                Wrist.setPosition(0);
+                Wrist.setPosition(WristPos);
             }
         }
     }
