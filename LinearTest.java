@@ -38,7 +38,9 @@ public class outputmode extends LinearOpMode {
         final int UpperArmUp = 0; //TODO
         final int LowerArmUp = 0; //TODO
         int mode = 0;
+
         waitForStart();
+
         while (opModeIsActive() && (!(gamepad1.x || gamepad2.x))) {
             //mechanum math stuff
             double py = -gamepad1.right_stick_x;
@@ -65,21 +67,11 @@ public class outputmode extends LinearOpMode {
             Claw.setPosition(gamepad2.right_bumper ? 0.5 : -0.1);
             Wrist.setPosition((gamepad2.left_bumper) ? 0 : 1); //wrist doesn't currently work
 
-            if (mode ==0){ //no preset
-                //currently you cannot manually control motors while preset is being enacted. this limit is for testing and will be removed later
-                LowerArm.setPower(gamepad2.left_stick_y);
-                UpperArm.setPower(gamepad2.right_stick_y);
-                //only check for preset input if we are not currently moving to a preset
-                mode = (gamepad2.dpad_down ? 1 : gamepad2.dpad_up ? 2: 0);
-            } else if (mode == 1){ //low preset
-                UpperArm.setPower(UpperArm.getCurrentPosition() > UpperArmDown ? -1 : 0);
-                LowerArm.setPower(LowerArm.getCurrentPosition() < LowerArmDown ? 1 : 0);
-                if (UpperArm.getCurrentPosition() <= UpperArmDown && LowerArm.getCurrentPosition() >= LowerArmDown) mode = 0;
-            } else if (mode == 2){ //high preset
-                UpperArm.setPower(UpperArm.getCurrentPosition() < UpperArmUp ? 1 : 0);
-                LowerArm.setPower(LowerArm.getCurrentPosition() > LowerArmUp ? -1 : 0);
-                if (UpperArm.getCurrentPosition() >= UpperArmUp && LowerArm.getCurrentPosition() <= LowerArmUp) mode = 0;
-            }
+            //squished all three modes into some ternaries to compact the code
+            //currently you cannot manually control motors while preset is being enacted. this limit is for testing and will be removed later
+            UpperArm.setPower(mode == 0 ? gamepad2.right_stick_y : mode == 1 && UpperArm.getCurrentPosition() > UpperArmDown ? -1 : mode == 2 && UpperArm.getCurrentPosition() < UpperArmUp ? 1 : 0);
+            LowerArm.setPower(mode == 0 ? gamepad2.right_stick_y : mode == 1 && LowerArm.getCurrentPosition() < LowerArmDown ? 1 : mode == 2 && LowerArm.getCurrentPosition() > LowerArmUp ? -1 : 0);
+            mode = (mode == 0 && gamepad2.dpad_down ? 1 : mode == 0 && gamepad2.dpad_up ? 2 : (mode == 1 && UpperArm.getCurrentPosition() <= UpperArmDown && LowerArm.getCurrentPosition() >= LowerArmDown) || (mode == 2 && UpperArm.getCurrentPosition() >= UpperArmUp && LowerArm.getCurrentPosition() <= LowerArmUp) ? 0 : mode);
 
             //print encoder info
             if (gamepad1.a || gamepad2.a) {
