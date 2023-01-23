@@ -6,10 +6,11 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 
+@SuppressWarnings("unused")
 @TeleOp(name = "outputmode", group = "whatever")
 public class outputmode extends LinearOpMode {
-    DcMotor FLeft, FRight, BLeft, BRight, UpperArm, Turret, LowerArm;
-    Servo Claw, Wrist;
+    DcMotor FLeft, FRight, BLeft, BRight, UpperArm, Turret, LowerArm, Wrist;
+    Servo Claw;
     TouchSensor ButtonOne, ButtonTwo;
 
     @Override
@@ -21,8 +22,8 @@ public class outputmode extends LinearOpMode {
         LowerArm = hardwareMap.get(DcMotor.class, "LowerArm");
         Turret = hardwareMap.get(DcMotor.class, "Turret");
         UpperArm = hardwareMap.get(DcMotor.class, "UpperArm");
+        Wrist = hardwareMap.get(DcMotor.class, "Wrist");
         Claw = hardwareMap.get(Servo.class, "Claw");
-        Wrist = hardwareMap.get(Servo.class, "Wrist");
         ButtonOne = hardwareMap.touchSensor.get("ButtonOne");
         ButtonTwo = hardwareMap.touchSensor.get("ButtonTwo");
 
@@ -30,16 +31,25 @@ public class outputmode extends LinearOpMode {
         final int UpperPos = UpperArm.getCurrentPosition();
         final int LowerPos = LowerArm.getCurrentPosition();
         final int TurretPos = Turret.getCurrentPosition();
-        final double WristPos = Wrist.getPosition();
+        final int WristPos = Wrist.getCurrentPosition();
+        double speed;
 
         //target positions for arm presets
         final int UpperArmDown = UpperPos - 2091;
         final int LowerArmDown = LowerPos + 8522;
-        final int UpperArmUp = 0; //TODO
-        final int LowerArmUp = 0; //TODO
+        final int UpperArmUp = UpperPos - 4396;
+        final int LowerArmUp = LowerPos + 4154;
+        final int WristTarget = (int) Math.round(WristPos + (384.5/4));
         int mode = 0;
 
         waitForStart();
+
+        /*
+        while (Wrist.getCurrentPosition() != WristTarget){
+            Wrist.setPower(value(0.7, Wrist.getCurrentPosition(), WristTarget));
+        }
+        Wrist.setPowers(0);
+        */
 
         while (opModeIsActive() && (!(gamepad1.x || gamepad2.x))) {
             //mechanum math stuff
@@ -63,18 +73,19 @@ public class outputmode extends LinearOpMode {
 
             //turret and arm controls
             //sets turret to how far the trigger is pressed, but all the way is too fast. I might add a hard limit and have a separate speed button
-            Turret.setPower((gamepad2.left_trigger > 0) ? gamepad2.left_trigger : (gamepad2.right_trigger > 0) ? -gamepad2.right_trigger : 0);
+            speed = (gamepad2.b ? 1.6 : 1);
+            Turret.setPower((gamepad2.left_trigger > 0 && !ButtonTwo.isPressed()) ? 0.5*speed : (gamepad2.right_trigger > 0 && !ButtonOne.isPressed()) ? -0.5*speed : 0);
             Claw.setPosition(gamepad2.right_bumper ? 0.5 : -0.1);
-            Wrist.setPosition((gamepad2.left_bumper) ? 0 : 1); //wrist doesn't currently work
 
             //squished all three modes into some ternaries to compact the code
             //currently you cannot manually control motors while preset is being enacted. this limit is for testing and will be removed later
-            UpperArm.setPower(mode == 0 ? gamepad2.right_stick_y : mode == 1 && UpperArm.getCurrentPosition() > UpperArmDown ? -1 : mode == 2 && UpperArm.getCurrentPosition() < UpperArmUp ? 1 : 0);
-            LowerArm.setPower(mode == 0 ? gamepad2.right_stick_y : mode == 1 && LowerArm.getCurrentPosition() < LowerArmDown ? 1 : mode == 2 && LowerArm.getCurrentPosition() > LowerArmUp ? -1 : 0);
-            mode = (mode == 0 && gamepad2.dpad_down ? 1 : mode == 0 && gamepad2.dpad_up ? 2 : (mode == 1 && UpperArm.getCurrentPosition() <= UpperArmDown && LowerArm.getCurrentPosition() >= LowerArmDown) || (mode == 2 && UpperArm.getCurrentPosition() >= UpperArmUp && LowerArm.getCurrentPosition() <= LowerArmUp) ? 0 : mode);
+            UpperArm.setPower(mode == 0 ? gamepad2.right_stick_y : mode == 1 && !InRange(UpperArm.getCurrentPosition(), UpperArmDown) ? value(1, UpperArm.getCurrentPosition(), UpperArmDown) : mode == 2 && !InRange(UpperArm.getCurrentPosition(), UpperArmUp) ? value(1, UpperArm.getCurrentPosition(), UpperArmUp) : 0);
+            LowerArm.setPower(mode == 0 ? gamepad2.left_stick_y : mode == 1 && !InRange(LowerArm.getCurrentPosition(), LowerArmDown) ? value(1, LowerArm.getCurrentPosition(), LowerArmDown) : mode == 2 && !InRange(LowerArm.getCurrentPosition(), LowerArmUp) ? value(1, LowerArm.getCurrentPosition(), LowerArmUp) : 0);
+            mode = (mode == 0 && gamepad2.dpad_down ? 1 : mode == 0 && gamepad2.dpad_up ? 2 : (mode == 1 && InRange(UpperArm.getCurrentPosition(), UpperArmDown) && InRange(LowerArm.getCurrentPosition(), LowerArmDown)) || (mode == 2 && InRange(UpperArm.getCurrentPosition(), UpperArmUp) && InRange(LowerArm.getCurrentPosition(), LowerArmUp)) ? 0 : mode);
 
             //print encoder info
             if (gamepad1.a || gamepad2.a) {
+                telemetry.addData("Mode", mode);
                 telemetry.addData("Upper Arm start", UpperPos);
                 telemetry.addData("Upper Arm current", UpperArm.getCurrentPosition());
                 telemetry.addData("Lower Arm start", LowerPos);
@@ -83,19 +94,33 @@ public class outputmode extends LinearOpMode {
                 telemetry.addData("ButtonOne", ButtonOne.isPressed());
                 telemetry.addData("ButtonTwo", ButtonTwo.isPressed());
                 telemetry.addData("Claw" , Claw.getPosition());
+                telemetry.addData("Wrist", Wrist.getCurrentPosition());
+                telemetry.addData("WristPos", WristPos);
                 telemetry.update();
             }
 
             //arm reset
             if (gamepad1.y || gamepad2.y){
-                //do upper arm first and then lower arm
-                //I might eventually be able to condense this to one ternary in a WHILE loop, I just haven't gotten around to it
-                while (UpperArm.getCurrentPosition() != UpperPos) UpperArm.setPower(UpperArm.getCurrentPosition() > UpperPos ? -0.7 : 0.7);
+                //moves the turret, then upper arm, then lower arm, then wrist
+                while (Turret.getCurrentPosition() != TurretPos) Turret.setPower(value(0.7, Turret.getCurrentPosition(), TurretPos));
+                Turret.setPower(0);
+                while (UpperArm.getCurrentPosition() != UpperPos) UpperArm.setPower(value(0.7, UpperArm.getCurrentPosition(), UpperPos));
                 UpperArm.setPower(0);
-                while (LowerArm.getCurrentPosition() != LowerPos) LowerArm.setPower(LowerArm.getCurrentPosition() > LowerPos ? -0.7 : 0.7);
+                while (LowerArm.getCurrentPosition() != LowerPos) LowerArm.setPower(value(0.7, LowerArm.getCurrentPosition(), LowerPos));
                 LowerArm.setPower(0);
-                Wrist.setPosition(WristPos); //wrist doesn't actually work
+                /*
+                while (Wrist.getCurrentPosition() != WristPos) Wrist.setPower(value(0.7, Wrist.getCurrentPosition(), WristPos));
+                Wrist.setPower(0);
+                */
             }
         }
+    }
+
+    public boolean InRange(double position, double target){
+        return ((position <= target+2) && (position >= target-2));
+    }
+
+    public double value(double speed, int position, int target){
+        return (position > target ? -speed : speed);
     }
 }
