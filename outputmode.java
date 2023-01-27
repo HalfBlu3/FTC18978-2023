@@ -1,5 +1,4 @@
 package org.firstinspires.ftc.teamcode.opmodeIGuess;
-
 //"In order to access static members, it is necessary to qualify references with the class they came from.
 //For example, one must say:
 //double r = Math.cos(Math.PI * theta);
@@ -15,13 +14,11 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.TouchSensor;
-
 @TeleOp(name = "outputmode", group = "whatever")
 public class outputmode extends LinearOpMode {
     DcMotor FLeft, FRight, BLeft, BRight, UpperArm, Turret, LowerArm, Wrist;
     Servo Claw;
     TouchSensor ButtonOne, ButtonTwo;
-
     @Override
     public void runOpMode() {
         FLeft = hardwareMap.get(DcMotor.class, "FrontLeft");
@@ -35,7 +32,6 @@ public class outputmode extends LinearOpMode {
         Claw = hardwareMap.get(Servo.class, "Claw");
         ButtonOne = hardwareMap.touchSensor.get("ButtonOne");
         ButtonTwo = hardwareMap.touchSensor.get("ButtonTwo");
-
         final int UpperPos = UpperArm.getCurrentPosition();
         final int LowerPos = LowerArm.getCurrentPosition();
         final int TurretPos = Turret.getCurrentPosition();
@@ -46,7 +42,6 @@ public class outputmode extends LinearOpMode {
         final int LowerArmDown = LowerPos + 8522;
         final int UpperArmUp = UpperPos - 4396;
         final int LowerArmUp = LowerPos + 4154;
-
         waitForStart();
         while (opModeIsActive() && (!(gamepad1.x || gamepad2.x))) {
             //mechanum math stuff
@@ -68,25 +63,22 @@ public class outputmode extends LinearOpMode {
             FRight.setPower(pFRight);
             BLeft.setPower(pBLeft);
             BRight.setPower(pBRight);
-
             //turret and arm controls
             double speed = (gamepad2.b ? 1.6 : 1);
             Turret.setPower((gamepad2.left_trigger > 0 && !ButtonTwo.isPressed()) ? 0.5 * speed : (gamepad2.right_trigger > 0 && !ButtonOne.isPressed()) ? -0.5 * speed : 0);
             Claw.setPosition(gamepad2.right_bumper ? 0.8 : 0.0);
             Wrist.setPower(gamepad1.left_bumper ? 1 : gamepad1.right_bumper ? -1 : 0);
-
             //currently you cannot manually control motors while preset is being enacted. this limit is for testing and will be removed later
-            mode = (mode == 0 && gamepad2.dpad_down ? 1 : mode == 0 && gamepad2.dpad_up ? 2 : (mode == 1 && UpperArm.getCurrentPosition() == UpperArmDown && LowerArm.getCurrentPosition() == LowerArmDown) || (mode == 2 && UpperArm.getCurrentPosition() == UpperArmUp && LowerArm.getCurrentPosition() == LowerArmUp) ? 0 : mode);
+            mode = (mode == 0 && gamepad2.dpad_down ? 1 : mode == 0 && gamepad2.dpad_up ? 2 : (mode == 1 && InRange(UpperArm.getCurrentPosition(), UpperArmDown) && InRange(LowerArm.getCurrentPosition(), LowerArmDown)) || (mode == 2 && InRange(UpperArm.getCurrentPosition(), UpperArmUp) && InRange(LowerArm.getCurrentPosition(), LowerArmUp)) ? 0 : mode);
+            //set target position based on what mode we are in, 0 is default since I'm pretty sure it doesn't matter in encoder mode
+            LowerArm.setTargetPosition(mode == 1 ? LowerArmDown : mode == 2 ? LowerArmUp : 0);
+            UpperArm.setTargetPosition(mode == 1 ? UpperArmDown : mode == 2 ? UpperArmUp : 0);
             //set motor mode to normal when in mode 0, and run to position otherwise
             LowerArm.setMode(mode == 0 ? RUN_USING_ENCODER : RUN_TO_POSITION);
             UpperArm.setMode(mode == 0 ? RUN_USING_ENCODER : RUN_TO_POSITION);
-            //set target position based on what mode we are in, 0 is default since I'm pretty sure it doesn't matter in encoder mode
-            LowerArm.setTargetPosition(mode == 1 ? LowerArmDown : mode == 2 ? LowerArmDown : 0);
-            UpperArm.setTargetPosition(mode == 1 ? UpperArmDown : mode == 2 ? UpperArmDown : 0);
             //these are positive because apparently the motor will adjust the direction automatically
             UpperArm.setPower(mode == 1 ? 1 : mode == 2 ? 1 : gamepad2.right_stick_y);
             LowerArm.setPower(mode == 1 ? 1 : mode == 2 ? 1 : gamepad2.left_stick_y);
-
             //print encoder info
             if (gamepad1.a || gamepad2.a) {
                 telemetry.addData("Mode", mode);
@@ -104,17 +96,19 @@ public class outputmode extends LinearOpMode {
                 telemetry.addData("WristPos", WristPos);
                 telemetry.update();
             }
-
             //arm reset
             if (gamepad1.y || gamepad2.y) {
                 //moves the turret, then upper arm, then lower arm, then wrist
-                while (Turret.getCurrentPosition() != TurretPos && UpperArm.getCurrentPosition() != UpperPos) {
-                    Turret.setMode(RUN_TO_POSITION);
-                    UpperArm.setMode(RUN_TO_POSITION);
-                    LowerArm.setMode(RUN_TO_POSITION);
+                while (!InRange(Turret.getCurrentPosition(), TurretPos) && !InRange(UpperArm.getCurrentPosition(), UpperPos) && !InRange(LowerArm.getCurrentPosition(), LowerPos)) {
                     Turret.setTargetPosition(TurretPos);
                     UpperArm.setTargetPosition(UpperPos);
                     LowerArm.setTargetPosition(LowerPos);
+                    Turret.setMode(RUN_TO_POSITION);
+                    UpperArm.setMode(RUN_TO_POSITION);
+                    LowerArm.setMode(RUN_TO_POSITION);
+                    Turret.setPower(1);
+                    UpperArm.setPower(1);
+                    LowerArm.setPower(1);
                 }
                 //the while is here so we can set them back to encoder once the motors are in place
                 Turret.setMode(RUN_USING_ENCODER);
@@ -122,5 +116,8 @@ public class outputmode extends LinearOpMode {
                 LowerArm.setMode(RUN_USING_ENCODER);
             }
         }
+    }
+    public boolean InRange(double position, double target){
+        return ((position <= target+5) && (position >= target-5));
     }
 }
