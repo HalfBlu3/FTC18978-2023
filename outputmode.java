@@ -38,10 +38,10 @@ public class outputmode extends LinearOpMode {
         final int WristPos = Wrist.getCurrentPosition();
         int mode = 0;
         //target positions for arm presets
-        final int UpperArmDown = UpperPos - 2091;
-        final int LowerArmDown = LowerPos + 8522;
-        final int UpperArmUp = UpperPos - 4396;
-        final int LowerArmUp = LowerPos + 4154;
+        final int UpperArmDown = UpperPos - 4984;
+        final int LowerArmDown = LowerPos + 7674;
+        final int UpperArmUp = UpperPos - 5227;
+        final int LowerArmUp = LowerPos + 4150;
         waitForStart();
         while (opModeIsActive() && (!(gamepad1.x || gamepad2.x))) {
             //mechanum math stuff
@@ -64,7 +64,7 @@ public class outputmode extends LinearOpMode {
             BLeft.setPower(pBLeft);
             BRight.setPower(pBRight);
             //turret and arm controls
-            double speed = (gamepad2.b ? 1.6 : 1);
+            double speed = (gamepad2.b ? 1.2 : 0.8);
             Turret.setPower((gamepad2.left_trigger > 0 && !ButtonTwo.isPressed()) ? 0.5 * speed : (gamepad2.right_trigger > 0 && !ButtonOne.isPressed()) ? -0.5 * speed : 0);
             Claw.setPosition(gamepad2.right_bumper ? 0.8 : 0.0);
             Wrist.setPower(gamepad1.left_bumper ? 1 : gamepad1.right_bumper ? -1 : 0);
@@ -99,10 +99,10 @@ public class outputmode extends LinearOpMode {
             //arm reset
             if (gamepad1.y || gamepad2.y) {
                 //moves the turret, then upper arm, then lower arm, then wrist
-                while (!InRange(Turret.getCurrentPosition(), TurretPos) && !InRange(UpperArm.getCurrentPosition(), UpperPos) && !InRange(LowerArm.getCurrentPosition(), LowerPos)) {
-                    Turret.setTargetPosition(TurretPos);
-                    UpperArm.setTargetPosition(UpperPos);
-                    LowerArm.setTargetPosition(LowerPos);
+                Turret.setTargetPosition(TurretPos);
+                UpperArm.setTargetPosition(UpperPos);
+                LowerArm.setTargetPosition(LowerPos);
+                while (!InRange(Turret.getCurrentPosition(), TurretPos) || !InRange(UpperArm.getCurrentPosition(), UpperPos) || !InRange(LowerArm.getCurrentPosition(), LowerPos)) {
                     Turret.setMode(RUN_TO_POSITION);
                     UpperArm.setMode(RUN_TO_POSITION);
                     LowerArm.setMode(RUN_TO_POSITION);
@@ -121,3 +121,10 @@ public class outputmode extends LinearOpMode {
         return ((position <= target+5) && (position >= target-5));
     }
 }
+
+
+
+
+
+
+
