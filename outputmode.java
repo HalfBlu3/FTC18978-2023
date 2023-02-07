@@ -64,10 +64,10 @@ public class outputmode extends LinearOpMode {
             BLeft.setPower(pBLeft);
             BRight.setPower(pBRight);
             //turret and arm controls
-            double speed = (gamepad2.b ? 1.2 : 0.8);
-            Turret.setPower((gamepad2.left_trigger > 0 && !ButtonTwo.isPressed()) ? 0.5 * speed : (gamepad2.right_trigger > 0 && !ButtonOne.isPressed()) ? -0.5 * speed : 0);
-            Claw.setPosition(gamepad2.right_bumper ? 0.8 : 0.0);
-            Wrist.setPower(gamepad1.left_bumper ? 1 : gamepad1.right_bumper ? -1 : 0);
+            double speed = (gamepad1.b ? 1.2 : 0.8);
+            Turret.setPower((gamepad1.left_trigger > 0 && !ButtonTwo.isPressed()) ? 0.5 * speed : (gamepad1.right_trigger > 0 && !ButtonOne.isPressed()) ? -0.5 * speed : 0);
+            Claw.setPosition(gamepad1.right_bumper ? 0.8 : 0.0);
+            Wrist.setPower(gamepad2.left_bumper ? 1 : gamepad2.right_bumper ? -1 : 0);
             //currently you cannot manually control motors while preset is being enacted. this limit is for testing and will be removed later
             mode = (mode == 0 && gamepad2.dpad_down ? 1 : mode == 0 && gamepad2.dpad_up ? 2 : (mode == 1 && InRange(UpperArm.getCurrentPosition(), UpperArmDown) && InRange(LowerArm.getCurrentPosition(), LowerArmDown)) || (mode == 2 && InRange(UpperArm.getCurrentPosition(), UpperArmUp) && InRange(LowerArm.getCurrentPosition(), LowerArmUp)) ? 0 : mode);
             //set target position based on what mode we are in, 0 is default since I'm pretty sure it doesn't matter in encoder mode
@@ -121,10 +121,3 @@ public class outputmode extends LinearOpMode {
         return ((position <= target+5) && (position >= target-5));
     }
 }
-
-
-
-
-
-
-
